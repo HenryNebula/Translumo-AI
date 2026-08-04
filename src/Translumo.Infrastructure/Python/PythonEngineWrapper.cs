@@ -19,8 +19,12 @@ public class PythonEngineWrapper : IDisposable
         Environment.SetEnvironmentVariable("PYTHONUTF8", "1");
         Environment.SetEnvironmentVariable("PYTHONLEGACYWINDOWSFSENCODING", "0");
 
+        // Only stage the DLL *path* here — do NOT touch PythonEngine yet. Any PythonEngine/Runtime
+        // call (e.g. setting PythonHome) eagerly loads python38.dll via Python.Runtime's Delegates
+        // type initializer, which crashes startup when Python\ is absent (the slim release ships
+        // without it; it is fetched on demand when EasyOCR is enabled). PythonHome + Initialize are
+        // deferred to Init()/InitInternal().
         Runtime.PythonDLL = Path.Combine(Global.PythonPathShort, "python38.dll");
-        PythonEngine.PythonHome = Global.PythonPathShort;
     }
 
     public PyObject Import(string libName) => Py.Import(libName);
@@ -56,6 +60,7 @@ public class PythonEngineWrapper : IDisposable
         {
             // TODO: move to common place, also used in EasyOCR
             Runtime.PythonDLL = Path.Combine(Global.PythonPathShort, "python38.dll");
+            PythonEngine.PythonHome = Global.PythonPathShort;
             PythonEngine.Initialize();
             PythonEngine.BeginAllowThreads();
         }
