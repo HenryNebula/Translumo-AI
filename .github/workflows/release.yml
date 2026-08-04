@@ -61,19 +61,36 @@ jobs:
       - name: Restore
         run: dotnet restore $env:Solution_Name
 
-      - name: Publish (single-file, win-x64, with OCR + Python bundles)
-        # SkipBinariesExtract is intentionally NOT set, so binaries_extract.bat runs in the PreBuild
-        # target and downloads the ~400 MB OCR/Python component bundle into the publish output.
-        run: dotnet publish src\Translumo\Translumo.csproj --configuration Release --output publish
+      - name: Publish (single-file, win-x64)
+        # Skip the PreBuild binaries_extract target: $(SolutionDir) is undefined when publishing a
+        # single project (not the .sln), so the target's path would resolve to "*Undefined*...". The
+        # bundle is placed into the publish output by the explicit step below instead.
+        run: dotnet publish src\Translumo\Translumo.csproj --configuration Release --output publish -p:SkipBinariesExtract=true
 
-      - name: Strip on-demand OCR components (keep only the small prediction model)
-        # Ship a slim release: python/easyocr/tessdata are fetched on demand when the user enables
-        # those engines. Keep models/prediction (needed by all engines for validity scoring).
+      - name: Place prediction model (the only bundled model)
+        # The release ships ONLY the small per-language prediction model (loaded at app startup for OCR
+        # validity scoring); python/easyocr/tessdata are fetched on demand when those engines are
+        # enabled. Pull the shared component zip and copy just models/prediction into the publish
+        # output — deterministic, no copy-all-then-strip.
         shell: pwsh
         run: |
-          Remove-Item -Recurse -Force publish\python            -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force publish\models\easyocr    -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force publish\models\tessdata   -ErrorAction SilentlyContinue
+          $zip = "$env:GITHUB_WORKSPACE\components.zip"
+          $ext = "$env:GITHUB_WORKSPACE\ext_components"
+          Invoke-WebRequest 'https://github.com/ramjke/Translumo/releases/download/v.0.8.5/_components_v.1.0.0.zip' -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $ext -Force
+          New-Item -ItemType Directory -Force -Path 'publish\models\prediction' | Out-Null
+          Copy-Item -Path "$ext\models\prediction\*" -Destination 'publish\models\prediction' -Recurse -Force
+
+      - name: Verify required prediction model is present
+        # The prediction model is loaded at app startup (OCR validity scoring). If it's missing the
+        # app crashes on launch — fail loudly here rather than ship a broken release.
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'publish\models\prediction\eng')) {
+            Write-Error "Prediction model 'publish\models\prediction\eng' is missing — the release would crash on startup."
+            exit 1
+          }
+          Write-Host "Prediction model present."
 
       - name: Zip artifact
         working-directory: publish
