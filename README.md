@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub All Releases](https://img.shields.io/github/downloads/Chaobs/Translumo-LLM/total.svg)](https://github.com/Chaobs/Translumo-LLM/releases)
+[![GitHub All Releases](https://img.shields.io/github/downloads/HenryNebula/Translumo-AI/total.svg)](https://github.com/HenryNebula/Translumo-AI/releases)
 
 <p align="center">
   <img src="docs/banner_new.png" alt="Translumo LLM Banner" width="830">
@@ -14,8 +14,8 @@
 > ChatGPT, Claude, Gemini, Grok, Ollama for local models, and custom OpenAI-compatible endpoints) on top of
 > the original OCR engines, plus Simplified/Traditional Chinese and Japanese localization. See
 > [NOTICE](NOTICE) for the full changelog.
-> Project page: [github.com/Chaobs/Translumo-LLM](https://github.com/Chaobs/Translumo-LLM) ·
-> Report issues: [Chaobs/Translumo-LLM/issues](https://github.com/Chaobs/Translumo-LLM/issues)
+> Project page: [github.com/HenryNebula/Translumo-AI](https://github.com/HenryNebula/Translumo-AI) ·
+> Report issues: [HenryNebula/Translumo-AI/issues](https://github.com/HenryNebula/Translumo-AI/issues)
 
 ## Original Project
 
@@ -30,16 +30,14 @@ background, history, and the original feature set that this LLM edition extends.
 
 ## Download Translumo-LLM
 
-**Direct download link to the latest version (v1.2.2):**
-
-[Translumo-LLM-v1.2.2.zip](https://github.com/Chaobs/Translumo-LLM/releases/download/v1.2.2/Translumo-LLM-v1.2.2.zip)
+**Download the latest release:** [HenryNebula/Translumo-AI/releases/latest](https://github.com/HenryNebula/Translumo-AI/releases/latest)
 
 After downloading, unzip the archive and run `Translumo-LLM.exe`. The download is a slim build:
 **Windows OCR** (and the vision / instant image-translation feature) work out of the box with no
 extra setup. If you enable **Tesseract** or **EasyOCR**, their data files (embedded Python runtime
 + OCR models, ~400 MB) are downloaded on demand the first time you turn them on.
 
-Full release history: [Chaobs/Translumo-LLM/releases](https://github.com/Chaobs/Translumo-LLM/releases)
+Full release history: [HenryNebula/Translumo-AI/releases](https://github.com/HenryNebula/Translumo-AI/releases)
 
 ## Main Features
 
@@ -169,7 +167,7 @@ A: Ensure the application path contains only Latin letters.
 
 1. Clone the repository (the `master` branch always corresponds to the latest release):
    ```bash
-   git clone https://github.com/Chaobs/Translumo-LLM.git
+   git clone https://github.com/HenryNebula/Translumo-AI.git
    cd Translumo-LLM
    ```
 

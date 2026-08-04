@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub All Releases](https://img.shields.io/github/downloads/Chaobs/Translumo-LLM/total.svg)](https://github.com/Chaobs/Translumo-LLM/releases)
+[![GitHub All Releases](https://img.shields.io/github/downloads/HenryNebula/Translumo-AI/total.svg)](https://github.com/HenryNebula/Translumo-AI/releases)
 
 <p align="center">
   <img src="../docs/banner_new.png" alt="Translumo LLM 横幅" width="830">
@@ -14,8 +14,8 @@
 > **LLM AI 翻译**（DeepSeek、通义千问 Qwen、Kimi、智谱 GLM、MiniMax、ChatGPT、Claude、Gemini、Grok、
 > 通过 Ollama 运行的本地模型，以及自定义 OpenAI 兼容接口），并补充了简体/繁体中文与日语本地化。
 > 完整变更见 [NOTICE](../NOTICE)。
-> 项目主页：[github.com/Chaobs/Translumo-LLM](https://github.com/Chaobs/Translumo-LLM) ·
-> 问题反馈：[Chaobs/Translumo-LLM/issues](https://github.com/Chaobs/Translumo-LLM/issues)
+> 项目主页：[github.com/HenryNebula/Translumo-AI](https://github.com/HenryNebula/Translumo-AI) ·
+> 问题反馈：[HenryNebula/Translumo-AI/issues](https://github.com/HenryNebula/Translumo-AI/issues)
 
 ## 原始项目
 
@@ -29,13 +29,11 @@ Translumo-LLM 建立在 **[Translumo](https://github.com/ramjke/Translumo)** 之
 
 ## 下载 Translumo-LLM
 
-**最新版本（v1.2.2）直链：**
-
-[Translumo-LLM-v1.2.2.zip](https://github.com/Chaobs/Translumo-LLM/releases/download/v1.2.2/Translumo-LLM-v1.2.2.zip)
+**下载最新版本：** [HenryNebula/Translumo-AI/releases/latest](https://github.com/HenryNebula/Translumo-AI/releases/latest)
 
 下载后解压压缩包并运行 `Translumo-LLM.exe` 即可。这是一个精简构建：**Windows OCR**（以及视觉 / 图片即时翻译功能）开箱即用，无需额外设置；若启用 **Tesseract** 或 **EasyOCR**，其数据文件（内嵌 Python 运行时 + OCR 模型，约 400 MB）会在首次开启时按需下载。
 
-完整发布历史：[Chaobs/Translumo-LLM/releases](https://github.com/Chaobs/Translumo-LLM/releases)
+完整发布历史：[HenryNebula/Translumo-AI/releases](https://github.com/HenryNebula/Translumo-AI/releases)
 
 ## 主要功能
 
@@ -165,7 +163,7 @@ A：请确保应用程序所在路径仅包含拉丁字母。
 
 1. 克隆仓库（**master** 分支始终对应最新发布版本）：
    ```bash
-   git clone https://github.com/Chaobs/Translumo-LLM.git
+   git clone https://github.com/HenryNebula/Translumo-AI.git
    cd Translumo-LLM
    ```
 
