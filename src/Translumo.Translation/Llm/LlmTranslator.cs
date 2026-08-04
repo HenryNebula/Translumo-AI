@@ -89,14 +89,72 @@ Translate the following text into {targetLanguageName}.
 Preserve the original meaning, tone and on-screen formatting exactly. Output ONLY the translated text — no commentary, no quotes, no ""Translation:"" prefix.
 If the text is already in {targetLanguageName}, or is nonsensical/garbled OCR output, return it unchanged.";
 
+        /// <summary>
+        /// Vision one-pass image translation used by the instant ("Google Lens") feature when the
+        /// active profile opts in (<see cref="LlmConfiguration.UseVisionForImages"/>). The whole
+        /// captured region (PNG bytes) is sent to a vision-capable model, which performs OCR and
+        /// translation in a single request and returns plain text — no bounding boxes. The source
+        /// language is auto-detected by the model. Reuses the shared <see cref="DispatchRequestAsync"/>
+        /// transport; only the request body differs (image + text).
+        /// </summary>
+        public async Task<string> TranslateImageAsync(byte[] imagePng, string targetLanguageName)
+        {
+            if (_llmSettings.RequiresApiKey && string.IsNullOrWhiteSpace(_llmSettings.ApiKey))
+            {
+                throw new TranslationException("LLM translator: API Key is not configured.");
+            }
+
+            if (!_llmSettings.Enabled)
+            {
+                throw new TranslationException("LLM translator: endpoint and model name are required for a custom provider.");
+            }
+
+            var systemPrompt = BuildImageTranslatePrompt(targetLanguageName);
+            var apiStyle = _llmSettings.ApiStyle;
+            string json = apiStyle switch
+            {
+                LlmApiStyle.OpenAi => BuildOpenAiVisionRequest(_llmSettings, systemPrompt, imagePng),
+                LlmApiStyle.Anthropic => BuildAnthropicVisionRequest(_llmSettings, systemPrompt, imagePng),
+                LlmApiStyle.Gemini => BuildGeminiVisionRequest(_llmSettings, systemPrompt, imagePng),
+                _ => throw new TranslationException($"Unsupported LLM API style: {apiStyle}")
+            };
+
+            // A fresh primary container per invocation (same lightweight, per-call pattern as
+            // TranslateAutoDetectAsync); the GC reclaims it after the call returns.
+            var container = new LlmContainer(isPrimary: true);
+            return await DispatchRequestAsync(container, apiStyle, json).ConfigureAwait(false);
+        }
+
+        private static string BuildImageTranslatePrompt(string targetLanguageName) =>
+$@"You are a professional translator. The attached image contains on-screen text (game UI, menus, subtitles, signs, documents, etc.) in an unknown source language.
+Read ALL the visible text in the image, translate it into {targetLanguageName}, and output ONLY the translation.
+Preserve the original line breaks and reading order. Do not add commentary, quotation marks, or a ""Translation:"" prefix.
+If the image contains no readable text, output nothing.";
+
         private async Task<string> TranslateWithPromptAsync(LlmContainer container, string sourceText, string systemPrompt)
         {
             var apiStyle = _llmSettings.ApiStyle;
-            string url;
-            string json;
+            string json = apiStyle switch
+            {
+                LlmApiStyle.OpenAi => BuildOpenAiRequest(_llmSettings, systemPrompt, sourceText),
+                LlmApiStyle.Anthropic => BuildAnthropicRequest(_llmSettings, systemPrompt, sourceText),
+                LlmApiStyle.Gemini => BuildGeminiRequest(_llmSettings, systemPrompt, sourceText),
+                _ => throw new TranslationException($"Unsupported LLM API style: {apiStyle}")
+            };
 
+            return await DispatchRequestAsync(container, apiStyle, json).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Applies the per-style auth headers + endpoint URL, POSTs an already-built request body,
+        /// and parses the response. Shared by the text and vision request paths so the transport/auth
+        /// logic lives in exactly one place.
+        /// </summary>
+        private async Task<string> DispatchRequestAsync(LlmContainer container, LlmApiStyle apiStyle, string json)
+        {
             container.Reader.OptionalHeaders.Clear();
 
+            string url;
             switch (apiStyle)
             {
                 case LlmApiStyle.OpenAi:
@@ -105,19 +163,16 @@ If the text is already in {targetLanguageName}, or is nonsensical/garbled OCR ou
                         container.Reader.OptionalHeaders["Authorization"] = "Bearer " + _llmSettings.ApiKey;
                     }
                     url = _llmSettings.ResolvedEndpoint;
-                    json = BuildOpenAiRequest(_llmSettings, systemPrompt, sourceText);
                     break;
 
                 case LlmApiStyle.Anthropic:
                     container.Reader.OptionalHeaders["x-api-key"] = _llmSettings.ApiKey;
                     container.Reader.OptionalHeaders["anthropic-version"] = "2023-06-01";
                     url = _llmSettings.ResolvedEndpoint;
-                    json = BuildAnthropicRequest(_llmSettings, systemPrompt, sourceText);
                     break;
 
                 case LlmApiStyle.Gemini:
                     url = string.Format(_llmSettings.ResolvedEndpoint, _llmSettings.ResolvedModel) + "?key=" + Uri.EscapeDataString(_llmSettings.ApiKey);
-                    json = BuildGeminiRequest(_llmSettings, systemPrompt, sourceText);
                     break;
 
                 default:
@@ -186,6 +241,88 @@ If the text is already in {targetLanguageName}, or is nonsensical/garbled OCR ou
                     {
                         role = "user",
                         parts = new object[] { new { text = userText } }
+                    }
+                },
+                systemInstruction = new
+                {
+                    parts = new object[] { new { text = systemPrompt } }
+                },
+                generationConfig = new
+                {
+                    temperature = cfg.Temperature,
+                    maxOutputTokens = cfg.MaxTokens
+                }
+            };
+
+            return JsonSerializer.Serialize(request);
+        }
+
+        // ---- Vision (image) request builders. The user turn carries a short instruction plus the
+        // base64-encoded PNG; the detailed prompt is passed as the system message/instruction. ----
+
+        private static string BuildOpenAiVisionRequest(LlmConfiguration cfg, string systemPrompt, byte[] imagePng)
+        {
+            var request = new
+            {
+                model = cfg.ResolvedModel,
+                messages = new object[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new
+                    {
+                        role = "user",
+                        content = new object[]
+                        {
+                            new { type = "text", text = "Translate all visible text in this image." },
+                            new { type = "image_url", image_url = new { url = "data:image/png;base64," + Convert.ToBase64String(imagePng) } }
+                        }
+                    }
+                },
+                temperature = cfg.Temperature,
+                max_tokens = cfg.MaxTokens
+            };
+
+            return JsonSerializer.Serialize(request);
+        }
+
+        private static string BuildAnthropicVisionRequest(LlmConfiguration cfg, string systemPrompt, byte[] imagePng)
+        {
+            var request = new
+            {
+                model = cfg.ResolvedModel,
+                max_tokens = cfg.MaxTokens,
+                system = systemPrompt,
+                messages = new object[]
+                {
+                    new
+                    {
+                        role = "user",
+                        content = new object[]
+                        {
+                            new { type = "image", source = new { type = "base64", media_type = "image/png", data = Convert.ToBase64String(imagePng) } },
+                            new { type = "text", text = "Translate all visible text in this image." }
+                        }
+                    }
+                }
+            };
+
+            return JsonSerializer.Serialize(request);
+        }
+
+        private static string BuildGeminiVisionRequest(LlmConfiguration cfg, string systemPrompt, byte[] imagePng)
+        {
+            var request = new
+            {
+                contents = new object[]
+                {
+                    new
+                    {
+                        role = "user",
+                        parts = new object[]
+                        {
+                            new { text = "Translate all visible text in this image." },
+                            new { inline_data = new { mime_type = "image/png", data = Convert.ToBase64String(imagePng) } }
+                        }
                     }
                 },
                 systemInstruction = new

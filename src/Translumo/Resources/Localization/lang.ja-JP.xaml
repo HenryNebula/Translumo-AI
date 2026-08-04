@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API キー</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">モデル名（任意）</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">画像翻訳にビジョンモデルを使用（OCR をスキップ）</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">翻訳プロンプト</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">温度</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">最大トークン数</system:String>

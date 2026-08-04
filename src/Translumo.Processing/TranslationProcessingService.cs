@@ -12,6 +12,7 @@ using Translumo.OCR;
 using Translumo.OCR.Configuration;
 using Translumo.Processing.Configuration;
 using Translumo.Processing.Exceptions;
+using Translumo.Processing.ImageTranslation;
 using Translumo.Processing.Interfaces;
 using Translumo.Processing.TextProcessing;
 using Translumo.Translation;
@@ -54,6 +55,12 @@ namespace Translumo.Processing
         private IScreenCapturer _onceTimeCapturer;
 
         private long _lastTranslatedTextTicks;
+
+        // Vision one-pass dedup state (continuous loop): avoids re-calling the vision API on a static
+        // screen and re-displaying an identical translation / repeating the same error every frame.
+        private byte[] _lastVisionFrame;
+        private string _lastVisionTranslation;
+        private string _lastVisionError;
 
         private const float MIN_SCORE_THRESHOLD = 2.1f;
         
@@ -207,6 +214,23 @@ namespace Translumo.Processing
                         }
 
                         byte[] screenshot = _capturer.CaptureScreen();
+
+                        // Vision one-pass: when the active LLM profile opts in, skip OCR entirely and
+                        // send the frame straight to the vision model (OCR + translation in one pass).
+                        if (_translationConfiguration.Translator == Translators.Llm
+                            && _translator is LlmTranslator visionLlm
+                            && _llmProfiles.Active is { Enabled: true, UseVisionForImages: true })
+                        {
+                            if (_lastVisionFrame != null && screenshot.SequenceEqual(_lastVisionFrame))
+                            {
+                                continue; // static screen — don't re-call the (costly) vision API
+                            }
+                            _lastVisionFrame = screenshot;
+                            activeTranslationTasks.Add(TranslateImageFrameAsync(visionLlm, screenshot));
+                            lastIterationType = IterationType.Short;
+                            continue;
+                        }
+
                         var primaryDetected = _textProvider.GetText(primaryOcr, screenshot);
                         lastIterationType = IterationType.Short;
                         if (primaryDetected.ValidityScore == 0 || _textResultCacheService.IsCached(primaryDetected.Text, sequentialText))
@@ -294,6 +318,9 @@ namespace Translumo.Processing
                 }
             }
             _textResultCacheService.Reset();
+            _lastVisionFrame = null;
+            _lastVisionTranslation = null;
+            _lastVisionError = null;
             _logger.LogTrace("Translation finished");
         }
 
@@ -318,11 +345,22 @@ namespace Translumo.Processing
                 lock (_obj)
                 {
                     byte[] screenshot = _onceTimeCapturer.CaptureScreen(captureArea);
-                    var taskResults = _engines.Select(engine => _textProvider.GetTextAsync(engine, screenshot)).ToArray();
-                    // TODO: sometimes one of task (win tts) is not complete long time and translation is not working
-                    Task.WaitAll(taskResults);
-                    TextDetectionResult bestDetected = GetBestDetectionResult(taskResults, 3);
-                    translationTask = TranslateTextAsync(bestDetected.Text, Guid.NewGuid());
+
+                    // Vision one-pass: skip OCR, send the frame straight to the vision model.
+                    if (_translationConfiguration.Translator == Translators.Llm
+                        && _translator is LlmTranslator visionLlm
+                        && _llmProfiles.Active is { Enabled: true, UseVisionForImages: true })
+                    {
+                        translationTask = TranslateImageFrameAsync(visionLlm, screenshot);
+                    }
+                    else
+                    {
+                        var taskResults = _engines.Select(engine => _textProvider.GetTextAsync(engine, screenshot)).ToArray();
+                        // TODO: sometimes one of task (win tts) is not complete long time and translation is not working
+                        Task.WaitAll(taskResults);
+                        TextDetectionResult bestDetected = GetBestDetectionResult(taskResults, 3);
+                        translationTask = TranslateTextAsync(bestDetected.Text, Guid.NewGuid());
+                    }
                 }
 
                 translationTask.Wait(TRANSLATION_TIMEOUT_MS);
@@ -353,6 +391,43 @@ namespace Translumo.Processing
                 _chatTextMediator.SendText(translation, true);
                 _ttsEngine.SpeechText(translation);
             }
+        }
+
+        /// <summary>
+        /// Vision one-pass translate-and-raise for a captured frame: re-encodes the TIFF capture to
+        /// PNG, asks the vision model to read + translate the whole image in one request, then feeds
+        /// the result into the same display/TTS sink as <see cref="TranslateTextAsync"/>. Vision mode
+        /// is a hard switch — on failure the error is shown (deduped) with no OCR fallback.
+        /// </summary>
+        private async Task TranslateImageFrameAsync(LlmTranslator llm, byte[] screenshot)
+        {
+            string translation;
+            try
+            {
+                var pngBytes = ImageTranslationService.ReencodeToPng(screenshot);
+                var targetName = _translationConfiguration.TranslateToLang.ToString();
+                translation = await llm.TranslateImageAsync(pngBytes, targetName).ConfigureAwait(false);
+            }
+            catch (TranslationException ex)
+            {
+                if (_lastVisionError != ex.Message)
+                {
+                    _lastVisionError = ex.Message;
+                    _chatTextMediator.SendText(ex.Message, false);
+                }
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(translation) || translation == _lastVisionTranslation)
+            {
+                return;
+            }
+
+            _lastVisionError = null;
+            _lastVisionTranslation = translation;
+            Interlocked.Exchange(ref _lastTranslatedTextTicks, DateTime.UtcNow.Ticks);
+            _chatTextMediator.SendText(translation, true);
+            _ttsEngine.SpeechText(translation);
         }
 
         private int GetIterationDelayMs(IterationType lastIterationType, bool withSequentialText)

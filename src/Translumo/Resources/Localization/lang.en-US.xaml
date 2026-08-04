@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API Key</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">Model name (optional)</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">Use vision model for image translation (bypass OCR)</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">Translation prompt</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">Temperature</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">Max tokens</system:String>

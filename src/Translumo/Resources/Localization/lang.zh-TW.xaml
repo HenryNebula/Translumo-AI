@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API 金鑰</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">模型名稱（選填）</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">圖像翻譯使用視覺模型（跳過 OCR）</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">翻譯提示詞</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">溫度</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">最大令牌數</system:String>

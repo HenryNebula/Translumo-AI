@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API Key</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">Модель (необязательно)</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">Использовать визуальную модель для перевода изображений (без OCR)</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">Промпт перевода</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">Температура</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">Макс. токенов</system:String>
