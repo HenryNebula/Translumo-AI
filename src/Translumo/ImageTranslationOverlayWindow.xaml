@@ -37,6 +37,7 @@
                     FontWeight="Bold"
                     Foreground="#9FE1CB" />
                 <TextBlock
+                    x:Name="SourceLabel"
                     Margin="0,0,4,0"
                     VerticalAlignment="Center"
                     Foreground="#C9D3D0"

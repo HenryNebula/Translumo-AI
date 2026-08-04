@@ -25,6 +25,23 @@ namespace Translumo.Processing.ImageTranslation
 
         public int ImageHeight { get; init; }
 
-        public bool HasText => Lines.Count > 0;
+        /// <summary>
+        /// True when the result was produced by a one-pass vision model (no per-line OCR boxes).
+        /// In that case <see cref="FullText"/> holds the whole translation and <see cref="Lines"/>
+        /// is empty; the overlay renders a single text block instead of positioned boxes.
+        /// </summary>
+        public bool IsTextOnly { get; init; }
+
+        /// <summary>Whole translation text for a vision one-pass (<see cref="IsTextOnly"/>) result.</summary>
+        public string FullText { get; init; }
+
+        public bool HasText => IsTextOnly ? !string.IsNullOrWhiteSpace(FullText) : Lines.Count > 0;
+
+        /// <summary>Builds a vision one-pass (text-only) result.</summary>
+        public static ImageTranslationResult TextOnly(string text) => new ImageTranslationResult
+        {
+            IsTextOnly = true,
+            FullText = text ?? string.Empty
+        };
     }
 }

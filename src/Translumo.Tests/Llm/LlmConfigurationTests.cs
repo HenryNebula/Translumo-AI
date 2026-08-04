@@ -98,5 +98,22 @@ namespace Translumo.Tests.Llm
             var cfg = new LlmConfiguration { Provider = LlmProvider.DeepSeek };
             Assert.True(cfg.RequiresApiKey);
         }
+
+        [Fact]
+        public void UseVisionForImages_defaults_to_false()
+        {
+            Assert.False(new LlmConfiguration().UseVisionForImages);
+        }
+
+        [Fact]
+        public void UseVisionForImages_round_trips_through_json()
+        {
+            var cfg = new LlmConfiguration { Provider = LlmProvider.ChatGPT, UseVisionForImages = true };
+
+            var json = JsonSerializer.Serialize(cfg);
+            var restored = JsonSerializer.Deserialize<LlmConfiguration>(json)!;
+
+            Assert.True(restored.UseVisionForImages);
+        }
     }
 }

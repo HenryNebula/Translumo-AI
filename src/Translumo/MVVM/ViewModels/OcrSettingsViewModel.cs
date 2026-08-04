@@ -53,8 +53,15 @@ namespace Translumo.MVVM.ViewModels
             get => _ocrConfiguration.GetConfiguration<TesseractOCRConfiguration>().Enabled;
             set
             {
-                _ocrConfiguration.GetConfiguration<TesseractOCRConfiguration>().Enabled = value;
-                OnPropertyChanged(nameof(TesseractOcrEnabled));
+                if (value)
+                {
+                    _ = EnableTesseractAsync();
+                }
+                else
+                {
+                    _ocrConfiguration.GetConfiguration<TesseractOCRConfiguration>().Enabled = false;
+                    OnPropertyChanged(nameof(TesseractOcrEnabled));
+                }
             }
         }
 
@@ -128,6 +135,30 @@ namespace Translumo.MVVM.ViewModels
             {
                 _logger.LogError(ex, $"Unexpected error during EasyOCR switching");
                 EasyOcrEnabled = false;
+            }
+        }
+
+        private async Task EnableTesseractAsync()
+        {
+            ActionInteractionStage stageToEnableOcr = new ActionInteractionStage(_dialogService, () =>
+            {
+                _ocrConfiguration.GetConfiguration<TesseractOCRConfiguration>().Enabled = true;
+                return Task.CompletedTask;
+            });
+
+            try
+            {
+                var initialStage = StagesFactory.CreateTesseractCheckingStages(_dialogService, stageToEnableOcr, _logger);
+                await initialStage.ExecuteAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unexpected error during Tesseract OCR switching");
+            }
+            finally
+            {
+                // Sync the toggle with the actual config state (reverts it if the user cancelled the download).
+                OnPropertyChanged(nameof(TesseractOcrEnabled));
             }
         }
     }

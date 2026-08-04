@@ -1,0 +1,92 @@
+name: Release
+
+# Cut a distributable release: build the single-file win-x64 app WITH the OCR/Python bundles
+# (~400 MB, fetched by binaries_extract.bat) and attach the zip to a GitHub Release on the tag.
+# The in-app updater (GithubApiClient) reads this repo's releases/tags, so a tag vX.Y.Z with a
+# version greater than the installed one triggers the "new version available" notice.
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to publish (e.g. v1.3.0). Must match src/Translumo/AssemblyInfo.cs."
+        required: true
+
+permissions:
+  contents: write   # required to create the GitHub Release / upload assets
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      Solution_Name: Translumo-LLM.sln
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so `gh release --generate-notes` can summarize changes
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          # Tag push => github.ref_name (e.g. "v1.3.0"); manual dispatch => the provided input tag.
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.tag }}' } else { '${{ github.ref_name }}' }
+          $tag = $tag.TrimStart('v').Trim()
+          if (-not $tag) { Write-Error "No version tag resolved."; exit 1 }
+          "tag=v$tag" >> $env:GITHUB_OUTPUT
+          "version=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Verify AssemblyInfo version matches tag
+        shell: pwsh
+        run: |
+          $expected = '${{ steps.ver.outputs.version }}'
+          $content  = Get-Content src/Translumo/AssemblyInfo.cs -Raw
+          if ($content -notmatch 'AssemblyInformationalVersion\("([^"]+)"\)') {
+            Write-Error "AssemblyInformationalVersion not found in src/Translumo/AssemblyInfo.cs"; exit 1
+          }
+          $asmVer = $Matches[1]
+          if ($asmVer -ne $expected) {
+            Write-Error "AssemblyInfo.cs version '$asmVer' does not match release version '$expected'. Bump src/Translumo/AssemblyInfo.cs (AssemblyFileVersion/AssemblyInformationalVersion/AssemblyVersion) first."; exit 1
+          }
+          Write-Host "Version OK: $asmVer"
+
+      - name: Restore
+        run: dotnet restore $env:Solution_Name
+
+      - name: Publish (single-file, win-x64, with OCR + Python bundles)
+        # SkipBinariesExtract is intentionally NOT set, so binaries_extract.bat runs in the PreBuild
+        # target and downloads the ~400 MB OCR/Python component bundle into the publish output.
+        run: dotnet publish src\Translumo\Translumo.csproj --configuration Release --output publish
+
+      - name: Strip on-demand OCR components (keep only the small prediction model)
+        # Ship a slim release: python/easyocr/tessdata are fetched on demand when the user enables
+        # those engines. Keep models/prediction (needed by all engines for validity scoring).
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force publish\python            -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force publish\models\easyocr    -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force publish\models\tessdata   -ErrorAction SilentlyContinue
+
+      - name: Zip artifact
+        working-directory: publish
+        shell: pwsh
+        run: 7z a -tzip "..\Translumo-LLM-${{ steps.ver.outputs.tag }}.zip" .
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" `
+            "Translumo-LLM-${{ steps.ver.outputs.tag }}.zip" `
+            --target ${{ github.sha }} `
+            --title "${{ steps.ver.outputs.tag }}" `
+            --generate-notes

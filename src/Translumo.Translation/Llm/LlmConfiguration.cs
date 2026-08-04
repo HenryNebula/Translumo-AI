@@ -93,6 +93,19 @@ If the text is already in {TargetLanguage}, or is nonsensical/garbled OCR output
             set => SetProperty(ref _maxTokens, value);
         }
 
+        /// <summary>
+        /// When true, the instant image-translation flow (Alt+D) sends the whole captured region to
+        /// this profile's vision model in a single pass (the model performs OCR + translation) and
+        /// renders the result as plain text, instead of running positional Windows OCR + per-line
+        /// translation. Intended for vision-capable models; on failure the OCR path is used as a
+        /// fallback so Alt+D never dead-ends.
+        /// </summary>
+        public bool UseVisionForImages
+        {
+            get => _useVisionForImages;
+            set => SetProperty(ref _useVisionForImages, value);
+        }
+
         /// <summary>Whether this provider requires an API key. Local providers (e.g. Ollama) do not.</summary>
         [JsonIgnore]
         public bool RequiresApiKey => Provider != LlmProvider.Ollama;
@@ -160,5 +173,6 @@ If the text is already in {TargetLanguage}, or is nonsensical/garbled OCR output
         private string _systemPrompt;
         private double _temperature = 0.3;
         private int _maxTokens = 4096;
+        private bool _useVisionForImages = false;
     }
 }

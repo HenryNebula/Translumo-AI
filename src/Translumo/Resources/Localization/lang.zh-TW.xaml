@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API 金鑰</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">模型名稱（選填）</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">圖像翻譯使用視覺模型（跳過 OCR）</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">翻譯提示詞</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">溫度</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">最大令牌數</system:String>
@@ -189,6 +190,9 @@
     <system:String x:Key="Str.Stages.InstallationPyModuleTemplate">正在安裝模組「{0}」...</system:String>
     <system:String x:Key="Str.Stages.PyModulesInstalled">所需模組已安裝</system:String>
     <system:String x:Key="Str.Stages.PyModulesCheckError">無法存取 Python 來檢查模組</system:String>
+    <system:String x:Key="Str.Stages.CheckOcrComponent">正在檢查 OCR 元件...</system:String>
+    <system:String x:Key="Str.Stages.OcrComponentDownloadQuestion">此 OCR 引擎需要本建置未包含的資料檔案（約 400 MB）。現在下載嗎？</system:String>
+    <system:String x:Key="Str.Stages.InstallationOcrComponent">正在下載 OCR 元件...</system:String>
     <system:String x:Key="Str.Stages.CheckLangPack">正在檢查語言套件安裝情況...</system:String>
     <system:String x:Key="Str.Stages.OCRLangPackQuestion" xml:space="preserve">Windows 尚未安裝語言「{0}」的圖文辨識 (OCR) 支援。&#13;是否現在安裝？</system:String>
     <system:String x:Key="Str.Stages.TTSLangPackQuestion" xml:space="preserve">Windows 尚未安裝語言「{0}」的語音朗讀 (TTS) 支援。&#13;是否現在安裝？</system:String>

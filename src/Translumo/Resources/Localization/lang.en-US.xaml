@@ -63,6 +63,7 @@
     <system:String x:Key="Str.LlmSettings.ApiKey">API Key</system:String>
     <system:String x:Key="Str.LlmSettings.Endpoint">API BASE URL</system:String>
     <system:String x:Key="Str.LlmSettings.Model">Model name (optional)</system:String>
+    <system:String x:Key="Str.LlmSettings.UseVisionForImages">Use vision model for image translation (bypass OCR)</system:String>
     <system:String x:Key="Str.LlmSettings.SystemPrompt">Translation prompt</system:String>
     <system:String x:Key="Str.LlmSettings.Temperature">Temperature</system:String>
     <system:String x:Key="Str.LlmSettings.MaxTokens">Max tokens</system:String>
@@ -191,6 +192,9 @@
     <system:String x:Key="Str.Stages.InstallationPyModuleTemplate">Installation '{0}' module...</system:String>
     <system:String x:Key="Str.Stages.PyModulesInstalled">Required modules are installed</system:String>
     <system:String x:Key="Str.Stages.PyModulesCheckError">Couldn't get access to Python for checking modules</system:String>
+    <system:String x:Key="Str.Stages.CheckOcrComponent">Checking OCR components...</system:String>
+    <system:String x:Key="Str.Stages.OcrComponentDownloadQuestion">This OCR engine requires data files that are not included in this build (~400 MB). Download them now?</system:String>
+    <system:String x:Key="Str.Stages.InstallationOcrComponent">Downloading OCR components...</system:String>
     <system:String x:Key="Str.Stages.CheckLangPack">Checking language pack installation...</system:String>
     <system:String x:Key="Str.Stages.OCRLangPackQuestion" xml:space="preserve">Text recognition (OCR) for the language '{0}' is not installed on Windows.&#13;Do you want to install it now?</system:String>
     <system:String x:Key="Str.Stages.TTSLangPackQuestion" xml:space="preserve">Text-to-speech (TTS) for the language '{0}' is not installed on Windows.&#13;Do you want to install it now?</system:String>

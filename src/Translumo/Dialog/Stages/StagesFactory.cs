@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Translumo.Infrastructure.Components;
 using Translumo.Infrastructure.Python;
 using Translumo.Utils;
 
@@ -92,15 +93,62 @@ namespace Translumo.Dialog.Stages
                         LocalizationManager.GetValue("Str.Stages.CheckLangPackError", true)));
         }
 
-        public static InteractionStage CreateEasyOcrCheckingStages(DialogService dialogService, InteractionStage enableFlagStage, ILogger logger)
+        /// <summary>
+        /// Builds the "ensure an OCR component (embedded Python / EasyOCR models / Tesseract tessdata)
+        /// is on disk" chain: if already present, go straight to <paramref name="next"/>; otherwise
+        /// ask, download + extract the shared component bundle (with a spinner), then continue to
+        /// <paramref name="next"/>. Mirrors <see cref="CreateWindowsOcrCheckingStages"/>.
+        /// </summary>
+        public static InteractionStage CreateEnsureComponentStages(
+            DialogService dialogService,
+            ComponentsProvider.ComponentKind kind,
+            InteractionStage next,
+            ILogger logger)
         {
             return new ConditionalInteractionStage(
-                dialogService,
-                async () =>
-                    await PythonProvider.ModuleIsInstalledAsync("easyocr")
-                    && await PythonProvider.ModuleIsInstalledAsync("torch")
-                    && await PythonProvider.ModuleIsInstalledAsync("torchvision"),
-                LocalizationManager.GetValue("Str.Stages.CheckPyModules"))
+                    dialogService,
+                    () => Task.FromResult(ComponentsProvider.IsComponentPresent(kind)),
+                    LocalizationManager.GetValue("Str.Stages.CheckOcrComponent"))
+                .AddNextFalse(
+                    new DialogQuestionInteractionStage(
+                            dialogService,
+                            LocalizationManager.GetValue("Str.Stages.OcrComponentDownloadQuestion", true))
+                        .AddNextStage(
+                            new ActionInteractionStage(
+                                    dialogService,
+                                    () => ComponentsProvider.EnsureComponentAsync(kind),
+                                    LocalizationManager.GetValue("Str.Stages.InstallationOcrComponent"))
+                                .AddException(new ExceptionInteractionStage(
+                                    dialogService,
+                                    ex => logger.LogError(ex, $"OCR component '{kind}' download/extract error"),
+                                    "{0}"))
+                                .AddNextStage(next)))
+                .AddNextStage(next)
+                .AddException(new ExceptionInteractionStage(
+                    dialogService,
+                    ex => logger.LogError(ex, $"OCR component '{kind}' presence check error"),
+                    "{0}"));
+        }
+
+        /// <summary>Tesseract only needs the tessdata component on disk before its engine initializes.</summary>
+        public static InteractionStage CreateTesseractCheckingStages(DialogService dialogService, InteractionStage enableFlagStage, ILogger logger)
+        {
+            return CreateEnsureComponentStages(dialogService, ComponentsProvider.ComponentKind.Tessdata, enableFlagStage, logger);
+        }
+
+        public static InteractionStage CreateEasyOcrCheckingStages(DialogService dialogService, InteractionStage enableFlagStage, ILogger logger)
+        {
+            // The embedded Python runtime and the easyocr model files must be on disk BEFORE the pip
+            // module checks/installs can run (pip executes inside the embedded python, and the easyocr
+            // Reader loads from models/easyocr). Ensure those components first, then run the existing
+            // pip-module install chain.
+            InteractionStage pipCheckStage = new ConditionalInteractionStage(
+                    dialogService,
+                    async () =>
+                        await PythonProvider.ModuleIsInstalledAsync("easyocr")
+                        && await PythonProvider.ModuleIsInstalledAsync("torch")
+                        && await PythonProvider.ModuleIsInstalledAsync("torchvision"),
+                    LocalizationManager.GetValue("Str.Stages.CheckPyModules"))
                 .AddNextFalse(new DialogQuestionInteractionStage(dialogService, LocalizationManager.GetValue("Str.Stages.PyModulesQuestion", true))
                     .AddNextStage(new DialogQuestionInteractionStage(dialogService, LocalizationManager.GetValue("Str.Stages.PyModulesQuestion2", true))
                         .AddNextStage(new ActionInteractionStage(dialogService, () => PythonProvider.InstallModuleAsync("torch torchvision --index-url https://download.pytorch.org/whl/cu118"), LocalizationManager.GetValue("Str.Stages.InstallationPyModule1"))
@@ -113,6 +161,9 @@ namespace Translumo.Dialog.Stages
                                         .AddNextStage(enableFlagStage)))))))
                 .AddNextStage(enableFlagStage)
                 .AddException(new ExceptionInteractionStage(dialogService, (ex) => logger.LogError(ex, "Easy OCR installation checking error"), LocalizationManager.GetValue("Str.Stages.PyModulesCheckError")));
+
+            var ensureEasyOcrModels = CreateEnsureComponentStages(dialogService, ComponentsProvider.ComponentKind.EasyOcr, pipCheckStage, logger);
+            return CreateEnsureComponentStages(dialogService, ComponentsProvider.ComponentKind.Python, ensureEasyOcrModels, logger);
         }
 
         //public static InteractionStage CreateSileroTtsCheckingStages(LanguageDescriptor languageDescriptor, DialogService dialogService, InteractionStage enableFlagStage, ILogger logger)

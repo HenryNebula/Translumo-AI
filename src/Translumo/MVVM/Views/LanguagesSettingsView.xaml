@@ -269,6 +269,13 @@
                                     Text="{Binding Path=LlmSettings.ModelName, UpdateSourceTrigger=PropertyChanged}"
                                     Style="{DynamicResource MaterialDesignComboBox}" />
                             </StackPanel>
+                            <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                                <CheckBox
+                                    VerticalAlignment="Center"
+                                    IsChecked="{Binding Path=LlmSettings.UseVisionForImages}"
+                                    Content="{DynamicResource Str.LlmSettings.UseVisionForImages}"
+                                    Style="{StaticResource RoundedCheckBox}" />
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Button
                                     Margin="0,4,0,0"

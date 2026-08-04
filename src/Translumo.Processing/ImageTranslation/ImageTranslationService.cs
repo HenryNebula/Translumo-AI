@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,6 +69,19 @@ namespace Translumo.Processing.ImageTranslation
         /// <param name="target">Target translation language.</param>
         public async Task<ImageTranslationResult> TranslateRegionAsync(byte[] regionImage, string forcedSourceTag, Languages target)
         {
+            // Vision one-pass: when the active LLM profile opts in, send the whole region to the
+            // vision model (OCR + translation in one request) and return plain text. On any failure
+            // (non-vision model, API error, empty response) fall through to the OCR pipeline below so
+            // Alt+D always produces a result.
+            var activeLlm = _translationConfiguration.Translator == Translators.Llm ? _llmProfiles.Active : null;
+            if (activeLlm != null && activeLlm.Enabled && activeLlm.UseVisionForImages)
+            {
+                // Vision mode is a hard switch with no OCR fallback: a failure propagates to the
+                // caller (ChatWindowViewModel), which surfaces it via overlay.ShowError.
+                var text = await TranslateRegionWithVisionAsync(regionImage, activeLlm, target).ConfigureAwait(false);
+                return ImageTranslationResult.TextOnly(text);
+            }
+
             var ocr = await WindowsOcrPositional.DetectAndRecognizeAsync(regionImage, forcedSourceTag).ConfigureAwait(false);
             if (ocr == null || ocr.Lines.Count == 0)
             {
@@ -96,6 +112,33 @@ namespace Translumo.Processing.ImageTranslation
                 ImageWidth = ocr.ImageWidth,
                 ImageHeight = ocr.ImageHeight
             };
+        }
+
+        /// <summary>
+        /// Vision one-pass: re-encodes the captured region to PNG (vision APIs reject the TIFF bytes
+        /// produced by the capturer) and asks the active profile's vision model to read and translate
+        /// all text in one request. Throws on any failure so the caller can fall back to OCR.
+        /// </summary>
+        private async Task<string> TranslateRegionWithVisionAsync(byte[] regionImage, LlmConfiguration activeLlm, Languages target)
+        {
+            var pngBytes = ReencodeToPng(regionImage);
+            var llm = new LlmTranslator(_translationConfiguration, activeLlm, _languageService, _logger);
+            var targetName = _languageService.GetLanguageDescriptor(target).Language.ToString();
+
+            return await llm.TranslateImageAsync(pngBytes, targetName).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Re-encodes the capturer's TIFF bytes to PNG — the format accepted by vision endpoints
+        /// (OpenAI/Anthropic/Gemini). <c>BitmapExtensions.ToBytes</c> always emits TIFF regardless of
+        /// the format argument passed to it.
+        /// </summary>
+        internal static byte[] ReencodeToPng(byte[] sourceBytes)
+        {
+            using var source = new Bitmap(new MemoryStream(sourceBytes));
+            using var output = new MemoryStream();
+            source.Save(output, ImageFormat.Png);
+            return output.ToArray();
         }
 
         private Func<string, Task<string>> CreateLineTranslator(Languages target)

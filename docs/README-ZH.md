@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub All Releases](https://img.shields.io/github/downloads/Chaobs/Translumo-LLM/total.svg)](https://github.com/Chaobs/Translumo-LLM/releases)
+[![GitHub All Releases](https://img.shields.io/github/downloads/HenryNebula/Translumo-AI/total.svg)](https://github.com/HenryNebula/Translumo-AI/releases)
 
 <p align="center">
   <img src="../docs/banner_new.png" alt="Translumo LLM 横幅" width="830">
@@ -14,8 +14,8 @@
 > **LLM AI 翻译**（DeepSeek、通义千问 Qwen、Kimi、智谱 GLM、MiniMax、ChatGPT、Claude、Gemini、Grok、
 > 通过 Ollama 运行的本地模型，以及自定义 OpenAI 兼容接口），并补充了简体/繁体中文与日语本地化。
 > 完整变更见 [NOTICE](../NOTICE)。
-> 项目主页：[github.com/Chaobs/Translumo-LLM](https://github.com/Chaobs/Translumo-LLM) ·
-> 问题反馈：[Chaobs/Translumo-LLM/issues](https://github.com/Chaobs/Translumo-LLM/issues)
+> 项目主页：[github.com/HenryNebula/Translumo-AI](https://github.com/HenryNebula/Translumo-AI) ·
+> 问题反馈：[HenryNebula/Translumo-AI/issues](https://github.com/HenryNebula/Translumo-AI/issues)
 
 ## 原始项目
 
@@ -29,14 +29,11 @@ Translumo-LLM 建立在 **[Translumo](https://github.com/ramjke/Translumo)** 之
 
 ## 下载 Translumo-LLM
 
-**最新版本（v1.2.2）直链：**
+**下载最新版本：** [HenryNebula/Translumo-AI/releases/latest](https://github.com/HenryNebula/Translumo-AI/releases/latest)
 
-[Translumo-LLM-v1.2.2.zip](https://github.com/Chaobs/Translumo-LLM/releases/download/v1.2.2/Translumo-LLM-v1.2.2.zip)
+下载后解压压缩包并运行 `Translumo-LLM.exe` 即可。这是一个精简构建：**Windows OCR**（以及视觉 / 图片即时翻译功能）开箱即用，无需额外设置；若启用 **Tesseract** 或 **EasyOCR**，其数据文件（内嵌 Python 运行时 + OCR 模型，约 400 MB）会在首次开启时按需下载。
 
-下载后解压压缩包并运行 `Translumo-LLM.exe` 即可。所有必需的依赖（Python 运行时、OCR 模型、WebView2）
-均已打包在内，无需单独安装。
-
-完整发布历史：[Chaobs/Translumo-LLM/releases](https://github.com/Chaobs/Translumo-LLM/releases)
+完整发布历史：[HenryNebula/Translumo-AI/releases](https://github.com/HenryNebula/Translumo-AI/releases)
 
 ## 主要功能
 
@@ -138,6 +135,8 @@ A：打开 **设置 → 管理 API**，选择供应商（DeepSeek、通义千问
 **Q：什么是“Google Lens 风格”图片即时翻译功能？**
 A：按 **Alt+D** 在屏幕上选择任意区域。Translumo-LLM 会一次性捕获该区域，通过 OCR 识别文字（源语言自动检测），并以你设置的目标语言显示翻译浮层。它非常适合处理不会持续变化的内容——游戏菜单、物品描述、对话框、路牌等。与连续翻译模式（Alt+Q + ~）不同，该模式按需翻译单个捕获帧。翻译优先使用你所配置的 LLM 供应商，若 LLM 失败则回退到 Google 翻译。如需更改目标语言，请在 **设置 → 语言** 中设置。
 
+**视觉模型一键模式：** 在任意 LLM 配置文件中开启「图像翻译使用视觉模型（跳过 OCR）」，即可将整个捕获区域一次性发送给支持视觉的模型（如 GPT-4.1、Claude、Gemini），由模型在同一次请求中完成识别 + 翻译，并以纯文本形式显示（不再按位置覆盖）。源语言由模型自动检测；若调用失败或模型不支持图像，会自动回退到 OCR 流程。
+
 **Q：LLM 翻译报错或无结果**
 A：请确认 API 密钥正确且有剩余额度、所选模型对你的账户可用，且网络能够访问对应供应商。若翻译服务因频繁请求而封禁，可在 **语言 → 代理** 选项卡中配置代理。
 
@@ -164,7 +163,7 @@ A：请确保应用程序所在路径仅包含拉丁字母。
 
 1. 克隆仓库（**master** 分支始终对应最新发布版本）：
    ```bash
-   git clone https://github.com/Chaobs/Translumo-LLM.git
+   git clone https://github.com/HenryNebula/Translumo-AI.git
    cd Translumo-LLM
    ```
 
@@ -195,6 +194,7 @@ A：请确保应用程序所在路径仅包含拉丁字母。
 - **LLM AI 翻译** —— 通过大语言模型获得更具上下文感知、更高质量的翻译，支持的供应商包括：DeepSeek、通义千问 Qwen、Kimi、智谱 GLM、MiniMax、ChatGPT、Claude、Gemini、Grok，以及任意自定义 OpenAI 兼容接口。
 - **Ollama 本地模型支持** —— 通过 Ollama 在你自己的机器上完全本地运行开源 AI 模型，翻译无需 API 密钥，也无需联网。
 - **Google Lens 风格图片即时翻译** —— 按 **Alt+D** 按需捕获并翻译屏幕上任意静态区域（详见 FAQ）。
+- **视觉模型一键图像翻译** —— 在每个 LLM 配置文件中可选择将整个捕获区域一次性交给支持视觉的模型（如 GPT-4.1、Claude、Gemini）完成 OCR + 翻译，并以纯文本显示，跳过 OCR 步骤；若视觉调用失败则自动回退到 OCR。
 - **界面本地化** —— 界面现已提供简体中文、繁体中文、日语、俄语与英语。
 - **可切换的浅色/深色主题** —— 选择适合自己的外观。
 - **TTS 语音切换** —— 在更多系统语音（含 OneCore 语音）中选择语音合成所用的声音。

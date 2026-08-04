@@ -157,10 +157,25 @@ namespace Translumo
                 }
             }
 
-            if (_result == null || _result.Lines.Count == 0)
+            if (_result == null)
             {
                 return;
             }
+
+            if (_result.IsTextOnly)
+            {
+                RenderSingleBlock();
+                return;
+            }
+
+            if (_result.Lines.Count == 0)
+            {
+                return;
+            }
+
+            // Positional (per-line) mode: source-language forcing is relevant here.
+            SourceCombo.Visibility = Visibility.Visible;
+            SourceLabel.Visibility = Visibility.Visible;
 
             var (scaleX, scaleY) = ComputeScale();
             foreach (var line in _result.Lines)
@@ -191,6 +206,51 @@ namespace Translumo
                 Canvas.SetTop(border, y);
                 LayerCanvas.Children.Add(border);
             }
+        }
+
+        /// <summary>
+        /// Renders a vision one-pass (text-only) result: a single wrapping text block sized to the
+        /// selected region, instead of positioned per-line boxes. Added to LayerCanvas with
+        /// Tag="line" so the cleanup loop in <see cref="RenderBoxes"/> reclaims it on re-render.
+        /// </summary>
+        private void RenderSingleBlock()
+        {
+            var width = Math.Max(40, _dipBottomRight.X - _dipTopLeft.X);
+            var height = Math.Max(40, _dipBottomRight.Y - _dipTopLeft.Y);
+
+            var textBlock = new TextBlock
+            {
+                Text = _result.FullText ?? string.Empty,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xF2, 0xF5, 0xF0)),
+                FontSize = 16,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var scroll = new ScrollViewer
+            {
+                Content = textBlock,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Padding = new Thickness(8)
+            };
+
+            var border = new Border
+            {
+                Tag = "line",
+                Background = new SolidColorBrush(Color.FromArgb(0xF0, 0x10, 0x14, 0x18)),
+                CornerRadius = new CornerRadius(4),
+                Width = width,
+                Height = height,
+                Child = scroll
+            };
+
+            Canvas.SetLeft(border, _dipTopLeft.X);
+            Canvas.SetTop(border, _dipTopLeft.Y);
+            LayerCanvas.Children.Add(border);
+
+            // Source-language forcing is meaningless for vision (it auto-detects), so hide it.
+            SourceCombo.Visibility = Visibility.Collapsed;
+            SourceLabel.Visibility = Visibility.Collapsed;
         }
 
         private void UpdateDetectedLabel()
@@ -271,7 +331,10 @@ namespace Translumo
 
             try
             {
-                Clipboard.SetText(string.Join(Environment.NewLine, _result.Lines.Select(l => l.Translation)));
+                var text = _result.IsTextOnly
+                    ? _result.FullText
+                    : string.Join(Environment.NewLine, _result.Lines.Select(l => l.Translation));
+                Clipboard.SetText(text);
             }
             catch
             {
