@@ -6,10 +6,16 @@ set "componentsPath=%~dp0ext_components"
 set "zipFile=%~dp0components.zip"
 set "downloadUrl=https://github.com/ramjke/Translumo/releases/download/v.0.8.5/_components_v.1.0.0.zip"
 
-set "targetPaths[0]=%~1python\"
-set "targetPaths[1]=%~1models\easyocr\"
-set "targetPaths[2]=%~1models\tessdata\"
-set "targetPaths[3]=%~1models\prediction\"
+:: Guarantee a trailing path separator on the target root. The prebuild step passes $(TargetDir)
+:: (ends in '\'), but the release workflow passes a relative dir without one — without this,
+:: "%~1python\" concatenates to "publishpython\" and the components land in the wrong place.
+set "targetRoot=%~1"
+if not "%targetRoot:~-1%"=="\" set "targetRoot=%targetRoot%\"
+
+set "targetPaths[0]=%targetRoot%python\"
+set "targetPaths[1]=%targetRoot%models\easyocr\"
+set "targetPaths[2]=%targetRoot%models\tessdata\"
+set "targetPaths[3]=%targetRoot%models\prediction\"
 
 set "inputBinariesPaths[0]=%componentsPath%\python"
 set "inputBinariesPaths[1]=%componentsPath%\models\easyocr"

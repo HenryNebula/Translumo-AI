@@ -83,6 +83,17 @@ jobs:
           Remove-Item -Recurse -Force publish\models\easyocr    -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force publish\models\tessdata   -ErrorAction SilentlyContinue
 
+      - name: Verify required prediction model is present
+        # The prediction model is loaded at app startup (OCR validity scoring). If it's missing the
+        # app crashes on launch — fail loudly here rather than ship a broken release.
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'publish\models\prediction\eng')) {
+            Write-Error "Prediction model 'publish\models\prediction\eng' is missing — the release would crash on startup."
+            exit 1
+          }
+          Write-Host "Prediction model present."
+
       - name: Zip artifact
         working-directory: publish
         shell: pwsh
