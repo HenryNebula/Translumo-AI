@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Translumo.Utils\Translumo.Utils.csproj" />
     <ProjectReference Include="..\Translumo.Infrastructure\Translumo.Infrastructure.csproj" />
     <ProjectReference Include="..\Translumo.Translation\Translumo.Translation.csproj" />
+    <ProjectReference Include="..\Translumo.Processing\Translumo.Processing.csproj" />
     <ProjectReference Include="..\Translumo\Translumo.csproj" />
   </ItemGroup>
 

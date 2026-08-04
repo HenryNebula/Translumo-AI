@@ -1,29 +1,53 @@
-name: PR. Build
+name: CI (build, test, publish)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ master, "feat/**" ]
   pull_request:
     branches: [ "*" ]
 
 jobs:
   build:
-    runs-on: windows-latest  # For a list of available runner types, refer to
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    runs-on: windows-latest  # WPF/.NET 8 desktop app — Windows-only build/test
     env:
       Solution_Name: Translumo-LLM.sln
-      SkipBinariesExtract: true   # Skip download additional binaries, those are set in cproj as a prebuilt step
-      
+      SkipBinariesExtract: true   # Skip the prebuilt OCR-binary extraction; the published artifact omits those bundles.
+
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
-      uses: actions/setup-dotnet@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 7.0.x
-        
-    - name: Build the application
-      run: dotnet build $env:Solution_Name /p:Configuration=Release
+        dotnet-version: 8.0.x
+
+    - name: Restore
+      run: dotnet restore $env:Solution_Name
+
+    - name: Build
+      run: dotnet build $env:Solution_Name --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test $env:Solution_Name --configuration Release --no-build --logger trx
+
+    - name: Publish (single-file, win-x64)
+      run: dotnet publish src\Translumo\Translumo.csproj --configuration Release --output publish
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Translumo-LLM-win-x64
+        path: publish
+        if-no-files-found: error
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: '**/*.trx'
+        if-no-files-found: warn
