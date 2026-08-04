@@ -148,7 +148,9 @@ namespace Translumo
             services.AddSingleton<IControllerInputProvider, ControllerInputProvider>();
             services.AddSingleton<ObservablePipe<Keystroke>>(new ObservablePipe<Keystroke>(Application.Current.Dispatcher));
             services.AddSingleton<UpdateManager>();
-            services.AddSingleton<IReleasesClient, GithubApiClient>(provider => new GithubApiClient("ramjke", "Translumo"));
+            // In-app update checks run against THIS fork's GitHub releases (tag vX.Y.Z) so the
+            // "new version available" notification reflects this repo, not the original upstream.
+            services.AddSingleton<IReleasesClient, GithubApiClient>(provider => new GithubApiClient("HenryNebula", "Translumo-AI"));
             services.AddSingleton<ICapturerFactory, ScreenCapturerFactory>();
             services.AddSingleton<PythonEngineWrapper>();
 
