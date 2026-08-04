@@ -34,8 +34,10 @@ background, history, and the original feature set that this LLM edition extends.
 
 [Translumo-LLM-v1.2.2.zip](https://github.com/Chaobs/Translumo-LLM/releases/download/v1.2.2/Translumo-LLM-v1.2.2.zip)
 
-After downloading, unzip the archive and run `Translumo-LLM.exe`. All required dependencies (Python
-runtime, OCR models, and WebView2) are bundled — no separate installation is needed.
+After downloading, unzip the archive and run `Translumo-LLM.exe`. The download is a slim build:
+**Windows OCR** (and the vision / instant image-translation feature) work out of the box with no
+extra setup. If you enable **Tesseract** or **EasyOCR**, their data files (embedded Python runtime
++ OCR models, ~400 MB) are downloaded on demand the first time you turn them on.
 
 Full release history: [Chaobs/Translumo-LLM/releases](https://github.com/Chaobs/Translumo-LLM/releases)
 

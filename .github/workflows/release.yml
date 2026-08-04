@@ -66,6 +66,15 @@ jobs:
         # target and downloads the ~400 MB OCR/Python component bundle into the publish output.
         run: dotnet publish src\Translumo\Translumo.csproj --configuration Release --output publish
 
+      - name: Strip on-demand OCR components (keep only the small prediction model)
+        # Ship a slim release: python/easyocr/tessdata are fetched on demand when the user enables
+        # those engines. Keep models/prediction (needed by all engines for validity scoring).
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force publish\python            -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force publish\models\easyocr    -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force publish\models\tessdata   -ErrorAction SilentlyContinue
+
       - name: Zip artifact
         working-directory: publish
         shell: pwsh

@@ -190,6 +190,9 @@
     <system:String x:Key="Str.Stages.InstallationPyModuleTemplate">モジュール「{0}」をインストール中...</system:String>
     <system:String x:Key="Str.Stages.PyModulesInstalled">必要なモジュールがインストールされました</system:String>
     <system:String x:Key="Str.Stages.PyModulesCheckError">モジュール確認のため Python にアクセスできませんでした</system:String>
+    <system:String x:Key="Str.Stages.CheckOcrComponent">OCR コンポーネントを確認しています...</system:String>
+    <system:String x:Key="Str.Stages.OcrComponentDownloadQuestion">この OCR エンジンにはこのビルドに含まれないデータファイル（約 400 MB）が必要です。今すぐダウンロードしますか？</system:String>
+    <system:String x:Key="Str.Stages.InstallationOcrComponent">OCR コンポーネントをダウンロードしています...</system:String>
     <system:String x:Key="Str.Stages.CheckLangPack">言語パックのインストール状況を確認しています...</system:String>
     <system:String x:Key="Str.Stages.OCRLangPackQuestion" xml:space="preserve">Windows に言語「{0}」の文字認識 (OCR) がインストールされていません。&#13;今すぐインストールしますか？</system:String>
     <system:String x:Key="Str.Stages.TTSLangPackQuestion" xml:space="preserve">Windows に言語「{0}」の音声読み上げ (TTS) がインストールされていません。&#13;今すぐインストールしますか？</system:String>

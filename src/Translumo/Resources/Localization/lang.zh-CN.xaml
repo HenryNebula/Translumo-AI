@@ -192,6 +192,9 @@
     <system:String x:Key="Str.Stages.InstallationPyModuleTemplate">正在安装模块 “{0}”...</system:String>
     <system:String x:Key="Str.Stages.PyModulesInstalled">所需模块已安装</system:String>
     <system:String x:Key="Str.Stages.PyModulesCheckError">无法访问 Python 来检查模块</system:String>
+    <system:String x:Key="Str.Stages.CheckOcrComponent">正在检查 OCR 组件...</system:String>
+    <system:String x:Key="Str.Stages.OcrComponentDownloadQuestion">此 OCR 引擎需要本构建未包含的数据文件（约 400 MB）。现在下载吗？</system:String>
+    <system:String x:Key="Str.Stages.InstallationOcrComponent">正在下载 OCR 组件...</system:String>
     <system:String x:Key="Str.Stages.CheckLangPack">正在检查语言包安装情况...</system:String>
     <system:String x:Key="Str.Stages.OCRLangPackQuestion" xml:space="preserve">Windows尚未安装语言 “{0}” 的图文识别 (OCR) 支持。&#13;是否现在安装？</system:String>
     <system:String x:Key="Str.Stages.TTSLangPackQuestion" xml:space="preserve">Windows尚未安装语言 “{0}” 的语音朗读 (TTS) 支持。&#13;是否现在安装？</system:String>

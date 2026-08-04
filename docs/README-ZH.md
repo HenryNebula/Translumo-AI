@@ -33,8 +33,7 @@ Translumo-LLM 建立在 **[Translumo](https://github.com/ramjke/Translumo)** 之
 
 [Translumo-LLM-v1.2.2.zip](https://github.com/Chaobs/Translumo-LLM/releases/download/v1.2.2/Translumo-LLM-v1.2.2.zip)
 
-下载后解压压缩包并运行 `Translumo-LLM.exe` 即可。所有必需的依赖（Python 运行时、OCR 模型、WebView2）
-均已打包在内，无需单独安装。
+下载后解压压缩包并运行 `Translumo-LLM.exe` 即可。这是一个精简构建：**Windows OCR**（以及视觉 / 图片即时翻译功能）开箱即用，无需额外设置；若启用 **Tesseract** 或 **EasyOCR**，其数据文件（内嵌 Python 运行时 + OCR 模型，约 400 MB）会在首次开启时按需下载。
 
 完整发布历史：[Chaobs/Translumo-LLM/releases](https://github.com/Chaobs/Translumo-LLM/releases)
 

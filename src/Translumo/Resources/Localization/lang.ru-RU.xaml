@@ -192,6 +192,9 @@
     <system:String x:Key="Str.Stages.InstallationPyModuleTemplate">Установка '{0}' модуля...</system:String>
     <system:String x:Key="Str.Stages.PyModulesInstalled">Необходимые модули успешно установлены</system:String>
     <system:String x:Key="Str.Stages.PyModulesCheckError">Не удалось получить доступ к Python для проверки модулей</system:String>
+    <system:String x:Key="Str.Stages.CheckOcrComponent">Проверка компонентов OCR...</system:String>
+    <system:String x:Key="Str.Stages.OcrComponentDownloadQuestion">Для этого движка OCR требуются файлы данных, не входящие в сборку (~400 МБ). Скачать их сейчас?</system:String>
+    <system:String x:Key="Str.Stages.InstallationOcrComponent">Загрузка компонентов OCR...</system:String>
     <system:String x:Key="Str.Stages.CheckLangPack">Проверка установленных языковых пакетов...</system:String>
     <system:String x:Key="Str.Stages.OCRLangPackQuestion" xml:space="preserve">Распознавание текста (OCR) для языка «{0}» не установлено в Windows.&#13;Хотите установить его сейчас?</system:String>
     <system:String x:Key="Str.Stages.TTSLangPackQuestion" xml:space="preserve">Синтез речи (TTS) для языка «{0}» не установлен в Windows.&#13;Хотите установить его сейчас?</system:String>

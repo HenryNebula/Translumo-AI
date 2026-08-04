@@ -14,8 +14,11 @@ namespace Translumo.OCR.Configuration
     {
         public static OcrGeneralConfiguration Default => new OcrGeneralConfiguration()
         {
+            // Only Windows OCR is enabled by default: its data ships with Windows, so a fresh install
+            // of the slim release works out of the box. Tesseract/EasyOCR need bundled data that is
+            // now fetched on demand when the user enables them, so they start disabled.
             OcrConfigurations = new OcrConfiguration[]
-                { new EasyOCRConfiguration(), new WindowsOCRConfiguration(), new TesseractOCRConfiguration() },
+                { new EasyOCRConfiguration { Enabled = false }, new WindowsOCRConfiguration(), new TesseractOCRConfiguration { Enabled = false } },
         };
 
         public OcrConfiguration[] OcrConfigurations
