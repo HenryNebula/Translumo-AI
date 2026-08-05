@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -58,11 +59,19 @@ namespace Translumo.Processing
 
         // Vision one-pass dedup state (continuous loop): avoids re-calling the vision API on a static
         // screen and re-displaying an identical translation / repeating the same error every frame.
-        private byte[] _lastVisionFrame;
+        private ulong[] _lastVisionFrameHash;
         private string _lastVisionTranslation;
         private string _lastVisionError;
 
         private const float MIN_SCORE_THRESHOLD = 2.1f;
+
+        // Vision one-pass frame dedup: each captured frame is reduced to a 16x16 (256-bit) average
+        // hash. Two frames whose hashes differ by at most VISION_HAMMING_THRESHOLD bits are treated as
+        // the same screen, so the (costly) vision API is not re-called on a static screen. Raw byte
+        // equality is too strict — DXGI captures of an unchanged screen still differ slightly (cursor
+        // blink, anti-aliasing, sub-pixel noise), which flooded the model.
+        private const int VISION_HASH_SIZE = 16;
+        private const int VISION_HAMMING_THRESHOLD = 8;
         
         public TranslationProcessingService(ICapturerFactory capturerFactory, IChatTextMediator chatTextMediator, OcrEnginesFactory ocrEnginesFactory,
             TranslatorFactory translationFactory, TtsFactory ttsFactory, TtsConfiguration ttsConfiguration,
@@ -102,7 +111,7 @@ namespace Translumo.Processing
                 return;
             }
 
-            if (!_engines.Any())
+            if (!_engines.Any() && !IsVisionMode())
             {
                 _chatTextMediator.SendText(_localizationProvider.GetValue("Str.Messages.NoOcrEngine") ?? "No OCR engine is selected!", false);
                 return;
@@ -117,7 +126,7 @@ namespace Translumo.Processing
 
         public void ProcessOnce(RectangleF captureArea)
         {
-            if (!_engines.Any())
+            if (!_engines.Any() && !IsVisionMode())
             {
                 _chatTextMediator.SendText(_localizationProvider.GetValue("Str.Messages.NoOcrEngine") ?? "No OCR engine is selected!", false);
                 return;
@@ -217,15 +226,16 @@ namespace Translumo.Processing
 
                         // Vision one-pass: when the active LLM profile opts in, skip OCR entirely and
                         // send the frame straight to the vision model (OCR + translation in one pass).
-                        if (_translationConfiguration.Translator == Translators.Llm
-                            && _translator is LlmTranslator visionLlm
-                            && _llmProfiles.Active is { Enabled: true, UseVisionForImages: true })
+                        if (IsVisionMode() && _translator is LlmTranslator visionLlm)
                         {
-                            if (_lastVisionFrame != null && screenshot.SequenceEqual(_lastVisionFrame))
+                            var frameHash = ComputeFrameHash(screenshot);
+                            if (frameHash != null && _lastVisionFrameHash != null
+                                && HammingDistance(frameHash, _lastVisionFrameHash) <= VISION_HAMMING_THRESHOLD)
                             {
-                                continue; // static screen — don't re-call the (costly) vision API
+                                continue; // near-static screen — don't re-call the (costly) vision API
                             }
-                            _lastVisionFrame = screenshot;
+
+                            _lastVisionFrameHash = frameHash;
                             activeTranslationTasks.Add(TranslateImageFrameAsync(visionLlm, screenshot));
                             lastIterationType = IterationType.Short;
                             continue;
@@ -318,7 +328,7 @@ namespace Translumo.Processing
                 }
             }
             _textResultCacheService.Reset();
-            _lastVisionFrame = null;
+            _lastVisionFrameHash = null;
             _lastVisionTranslation = null;
             _lastVisionError = null;
             _logger.LogTrace("Translation finished");
@@ -347,9 +357,7 @@ namespace Translumo.Processing
                     byte[] screenshot = _onceTimeCapturer.CaptureScreen(captureArea);
 
                     // Vision one-pass: skip OCR, send the frame straight to the vision model.
-                    if (_translationConfiguration.Translator == Translators.Llm
-                        && _translator is LlmTranslator visionLlm
-                        && _llmProfiles.Active is { Enabled: true, UseVisionForImages: true })
+                    if (IsVisionMode() && _translator is LlmTranslator visionLlm)
                     {
                         translationTask = TranslateImageFrameAsync(visionLlm, screenshot);
                     }
@@ -394,6 +402,17 @@ namespace Translumo.Processing
         }
 
         /// <summary>
+        /// True when the active translator is an LLM whose profile opts into vision one-pass mode. In
+        /// vision mode the captured frame goes straight to the model (OCR + translation in one pass),
+        /// so no OCR engine is required and the "no OCR engine selected" gate is bypassed for both
+        /// continuous and one-shot translation.
+        /// </summary>
+        private bool IsVisionMode() =>
+            _translationConfiguration.Translator == Translators.Llm
+            && _translator is LlmTranslator
+            && _llmProfiles.Active is { Enabled: true, UseVisionForImages: true };
+
+        /// <summary>
         /// Vision one-pass translate-and-raise for a captured frame: re-encodes the TIFF capture to
         /// PNG, asks the vision model to read + translate the whole image in one request, then feeds
         /// the result into the same display/TTS sink as <see cref="TranslateTextAsync"/>. Vision mode
@@ -428,6 +447,51 @@ namespace Translumo.Processing
             Interlocked.Exchange(ref _lastTranslatedTextTicks, DateTime.UtcNow.Ticks);
             _chatTextMediator.SendText(translation, true);
             _ttsEngine.SpeechText(translation);
+        }
+
+        /// <summary>
+        /// Cheap 256-bit average hash of a captured frame, used to detect a (near-)static screen.
+        /// Downscaling to 16x16 grayscale and thresholding each cell against the mean absorbs capture
+        /// noise (cursor blink, anti-aliasing, sub-pixel jitter) while still reacting to real content
+        /// changes — analogous to how the OCR path dedups on the extracted text rather than raw pixels.
+        /// Returns null if the bytes can't be decoded, in which case the caller skips dedup and always
+        /// translates (a safe fallback).
+        /// </summary>
+        private static ulong[] ComputeFrameHash(byte[] screenshot)
+        {
+            using var src = Cv2.ImDecode(screenshot, ImreadModes.Color);
+            if (src == null || src.Empty())
+            {
+                return null;
+            }
+
+            using var small = new Mat();
+            Cv2.Resize(src, small, new OpenCvSharp.Size(VISION_HASH_SIZE, VISION_HASH_SIZE), interpolation: InterpolationFlags.Area);
+            using var gray = new Mat();
+            Cv2.CvtColor(small, gray, ColorConversionCodes.BGR2GRAY);
+
+            var mean = Cv2.Mean(gray).Val0;
+            var hash = new ulong[VISION_HASH_SIZE * VISION_HASH_SIZE / 64];
+            for (var i = 0; i < VISION_HASH_SIZE * VISION_HASH_SIZE; i++)
+            {
+                if (gray.At<byte>(i / VISION_HASH_SIZE, i % VISION_HASH_SIZE) > mean)
+                {
+                    hash[i / 64] |= 1UL << (i % 64);
+                }
+            }
+
+            return hash;
+        }
+
+        private static int HammingDistance(ulong[] a, ulong[] b)
+        {
+            var distance = 0;
+            for (var i = 0; i < a.Length; i++)
+            {
+                distance += BitOperations.PopCount(a[i] ^ b[i]);
+            }
+
+            return distance;
         }
 
         private int GetIterationDelayMs(IterationType lastIterationType, bool withSequentialText)

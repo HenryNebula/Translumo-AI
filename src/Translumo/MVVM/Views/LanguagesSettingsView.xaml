@@ -269,12 +269,18 @@
                                     Text="{Binding Path=LlmSettings.ModelName, UpdateSourceTrigger=PropertyChanged}"
                                     Style="{DynamicResource MaterialDesignComboBox}" />
                             </StackPanel>
-                            <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                            <StackPanel Margin="0,0,0,8">
                                 <CheckBox
+                                    Margin="2,0,0,0"
                                     VerticalAlignment="Center"
-                                    IsChecked="{Binding Path=LlmSettings.UseVisionForImages}"
-                                    Content="{DynamicResource Str.LlmSettings.UseVisionForImages}"
-                                    Style="{StaticResource RoundedCheckBox}" />
+                                    IsChecked="{Binding Path=LlmSettings.UseVisionForImages}">
+                                    <CheckBox.Content>
+                                        <TextBlock
+                                            FontSize="13"
+                                            Text="{DynamicResource Str.LlmSettings.UseVisionForImages}"
+                                            TextWrapping="Wrap" />
+                                    </CheckBox.Content>
+                                </CheckBox>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Button
