@@ -126,10 +126,18 @@ If the text is already in {targetLanguageName}, or is nonsensical/garbled OCR ou
         }
 
         private static string BuildImageTranslatePrompt(string targetLanguageName) =>
-$@"You are a professional translator. The attached image contains on-screen text (game UI, menus, subtitles, signs, documents, etc.) in an unknown source language.
-Read ALL the visible text in the image, translate it into {targetLanguageName}, and output ONLY the translation.
-Preserve the original line breaks and reading order. Do not add commentary, quotation marks, or a ""Translation:"" prefix.
-If the image contains no readable text, output nothing.";
+$@"You are a professional screen-image translator. The attached image contains on-screen text (game UI, menus, subtitles, signs, documents, etc.) in an unknown source language.
+
+Your task:
+1. Read every line of visible text in the image.
+2. Translate ALL of it into {targetLanguageName}.
+
+CRITICAL RULES:
+- Output ONLY the {targetLanguageName} translation. Never output the original/source-language text.
+- Do not transcribe, echo, or paraphrase the source text. If what you are about to write is in the same language as the image, you are wrong — translate it into {targetLanguageName}.
+- Preserve the original line breaks and reading order.
+- Do not add commentary, quotation marks, or a ""Translation:"" prefix.
+- If the image contains no readable text, output nothing.";
 
         private async Task<string> TranslateWithPromptAsync(LlmContainer container, string sourceText, string systemPrompt)
         {
